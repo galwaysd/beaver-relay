@@ -31,11 +31,38 @@ Beaver Relay helps an agent:
 - preserve an auditable history and rollback path when available;
 - hand the project to a different agent without starting from zero.
 
+## Why attention-friendly?
+
+Interruptions are normal. The expensive part is not stopping — it is reconstructing context, reopening the right files, remembering what was already decided, and figuring out how to restart.
+
+Beaver Relay keeps an explicit interruption point, one next physical action, and parked side ideas so resuming work does not require rebuilding the project in your head.
+
 ## Core promise
 
 > Never start from zero.
 
 A fresh agent with no prior chat context should be able to read the workspace, understand where the work stands, see where the last session stopped, and continue with the correct next action.
+
+## Core vs optional layers
+
+Beaver Relay Core handles continuity:
+
+```text
+restore state
+→ recover focus
+→ continue
+→ verify
+→ write back
+→ hand off
+```
+
+Reusable experience is optional. A workspace may add conditioned experience, maturity, counterexamples, and rollback, but none of that is required before a project can resume.
+
+## Adapters
+
+The protocol is platform-agnostic. Example integration:
+
+- [Obsidian + GitHub](adapters/obsidian-github.md)
 
 ## Install
 
