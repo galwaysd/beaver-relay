@@ -157,6 +157,32 @@ If the user switches topics, preserve the existing focus state unless the user e
 
 ---
 
+# Temporal-layer continuity
+
+Continuity can fail even when memory exists. An agent may restore a valid but outdated layer of context and continue from the wrong point in time.
+
+Therefore restoration must verify **recency**, not just presence:
+
+- identify the latest verified active state;
+- distinguish current work from older but still valid background context;
+- prefer recent active state over older summaries when they conflict in temporal scope;
+- preserve the recent progression needed to understand how the work arrived at the current state;
+- do not treat successful recall of older context as proof that handoff succeeded.
+
+A successful handoff restores two things:
+
+1. **Immediate state** — where the work is now and what happens next.
+2. **Recent progression** — the minimum recent evolution needed to continue correctly without snapping back to an older valid state.
+
+Failure mode:
+
+> The agent remembers relevant history but resumes from the wrong temporal layer.
+
+Success criterion:
+
+> A fresh agent should continue from the latest verified active state, not merely from the latest context it happens to remember.
+
+---
 # Source-of-truth rule
 
 Each important fact should have one authoritative home.
