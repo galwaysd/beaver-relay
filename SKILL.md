@@ -1,6 +1,6 @@
 ---
 name: beaver-relay
-description: Turn any readable/writable workspace plus versioned history into a persistent operating environment for AI agents. Use when an agent needs to continue work across sessions, models, or tools without making the user restate context; restore current state, decide the next action, execute, verify, write back, and leave an auditable handoff for the next agent.
+description: Attention-friendly continuity for AI work across interruptions, sessions, models, and tools. Turn a readable/writable workspace plus versioned history into a persistent operating environment that restores current state, preserves decisions and evidence, identifies the next concrete action, and lets another agent continue without starting over.
 ---
 
 # Beaver Relay
@@ -44,6 +44,8 @@ A returning or replacement agent should be able to:
 
 The long-term state must live outside the chat.
 
+Beaver Relay is intentionally **attention-friendly**. It is designed for work that gets interrupted, resumed later, moved between models, or temporarily displaced by another task. The system should reduce the cost of re-entry, not merely preserve documentation.
+
 ---
 
 # Capability requirements
@@ -85,6 +87,14 @@ current:
   task: <what is actively being worked on>
   next: <one concrete next action>
 
+focus:
+  current: <what deserves attention now>
+  interruption_point: <where work stopped or last verified checkpoint>
+  next_physical_action: <the smallest concrete action that restarts momentum>
+  why_next: <why this action is the right re-entry point>
+  parked_ideas:
+    - <useful thought that should not replace the current task>
+
 decisions:
   - <confirmed decision or constraint>
 
@@ -106,6 +116,44 @@ updated_at: <timestamp if available>
 The physical format may vary.
 
 The semantics must not.
+
+The `focus` block is especially important when attention is interrupted. It should make resumption cheap enough that the user does not need to reconstruct the project mentally before acting.
+
+---
+
+# Attention-friendly re-entry
+
+When work resumes after an interruption, do not begin with a broad recap unless the user asks for one.
+
+Use this sequence:
+
+1. restore the current goal and verified state;
+2. identify the interruption point;
+3. recover only the context required for the next action;
+4. surface one `next_physical_action`;
+5. keep side ideas in `parked_ideas` instead of letting them replace the current task.
+
+A good re-entry brief answers:
+
+```text
+What am I doing?
+Where did I stop?
+What changed?
+What is the next physical action?
+Why is that the right next step?
+```
+
+Prefer verbs and observable actions over abstract intentions.
+
+Good:
+
+> Open the failed deployment log and compare the last successful revision.
+
+Weak:
+
+> Continue investigating deployment.
+
+If the user switches topics, preserve the existing focus state unless the user explicitly changes the project goal or current priority.
 
 ---
 
@@ -209,10 +257,11 @@ RESTORE
 Before acting on an existing project:
 
 1. read Current State;
-2. read relevant confirmed decisions;
-3. inspect only the minimum source material needed;
-4. check recent history/diff if the state may be stale;
-5. reconstruct a compact working brief.
+2. read the `focus` block and interruption point;
+3. read relevant confirmed decisions;
+4. inspect only the minimum source material needed;
+5. check recent history/diff if the state may be stale;
+6. reconstruct a compact working brief centered on the next physical action.
 
 Do not load the whole workspace by default.
 
@@ -266,6 +315,9 @@ Write back only what changed:
 - confirmed decision;
 - verification result;
 - next action;
+- interruption point;
+- next physical action;
+- parked idea when it would otherwise steal the current task;
 - important unknown.
 
 Do not rewrite the whole workspace after every turn.
@@ -288,6 +340,10 @@ Leave enough state that another agent can continue without asking:
 > “What were we doing?”
 
 A handoff is successful when a fresh agent can identify the correct next action from the persistent workspace alone.
+
+For interrupted work, also preserve enough information that the next agent can answer:
+
+> “Where did we stop, and what should I physically do first?”
 
 ---
 
@@ -361,6 +417,8 @@ A system becoming more experienced does not gain permission to perform actions t
 
 A persistent workspace may maintain reusable experience, but experience is secondary to continuity.
 
+This module is optional. Beaver Relay Core must still work when no reusable-experience system exists. Do not require experience bookkeeping before state restoration, execution, verification, or handoff.
+
 Use this hierarchy:
 
 ```text
@@ -378,10 +436,34 @@ If an experience system is present, it should support:
 - conditions for use;
 - validation;
 - counterexamples;
+- maturity;
+- active / challenged / suspended / deprecated status;
 - downgrade/deprecation;
 - preserved history.
 
+Suggested semantics:
+
+- `challenged` — a clear counterexample exists; stop automatic reuse for the current task and inspect whether the rule is too broad;
+- `suspended` — default-off because current evidence contradicts it or continued use carries meaningful risk; strong evidence can justify immediate suspension without waiting for a second failure;
+- `deprecated` — confirmed obsolete, invalid, or superseded; preserve history and record the replacement when known.
+
+Never let an old experience rule override current evidence.
+
 Do not make experience bookkeeping block execution.
+
+---
+
+# Knowledge lifecycle semantics
+
+Beaver Relay may distinguish three semantic states:
+
+- `archive` — historical evidence, old decisions, superseded approaches, experiments;
+- `active` — current facts, constraints, state, and rules that must influence present work;
+- `reusable` — methods or experience that may be conditionally applied to future work.
+
+These are lifecycle meanings, not mandatory folders. Do not reorganize a user's workspace merely to match these labels.
+
+Use links, metadata, status fields, or existing structure when possible.
 
 ---
 
@@ -466,6 +548,16 @@ The agent spends more time maintaining the system than doing the work.
 Why it fails:
 - persistence becomes user overhead.
 
+## Governance overload
+
+The continuity protocol grows into a large operating manual that must be satisfied before work can continue.
+
+Why it fails:
+- re-entry becomes slower than reconstructing the task manually;
+- optional learning machinery becomes a dependency of the core workflow.
+
+Keep the core small. Add governance only when repeated failures prove it necessary.
+
 ## “Done” without evidence
 
 The agent reports completion because it wrote code or text.
@@ -517,7 +609,8 @@ This skill is working if:
 4. incorrect changes can be traced and, where supported, rolled back;
 5. current evidence beats stale memory;
 6. the system preserves one clear next action;
-7. maintaining persistence creates less work for the user, not more.
+7. maintaining persistence creates less work for the user, not more;
+8. after an interruption, the user can resume from one concrete action without reconstructing the whole project mentally.
 
 The strongest test:
 
