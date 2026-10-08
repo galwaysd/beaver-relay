@@ -68,6 +68,15 @@ If one platform provides both workspace and history, that is acceptable.
 
 If a capability is missing, continue with degraded mode and state the limitation. Do not pretend rollback or auditability exists when it does not.
 
+## Optional local working-tree evidence
+
+When the active agent has authorized local filesystem and command access, use [Local Workspace + Git Evidence Adapter](adapters/local-workspace-git.md) to inspect **uncommitted tracked and untracked files**, staged/unstaged diffs, and test evidence. This is optional and does not replace the existing authoritative project state or version backend.
+
+At RESTORE, check live local evidence only when it changes the next action or a saved status may be stale. At VERIFY, distinguish fresh test exits from historical logs and reported assertions. At WRITE BACK, record concise findings and evidence references in the **existing** state file; never copy a raw diff or create a parallel state source.
+
+If this agent cannot access the user's local machine, state that limitation and do not claim GitHub's committed contents represent the live working tree. Installing this Skill alone does not grant access, start a local bridge, or schedule automatic runs.
+
+
 ---
 
 # State Contract
