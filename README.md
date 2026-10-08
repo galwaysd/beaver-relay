@@ -63,6 +63,7 @@ Reusable experience is optional. A workspace may add conditioned experience, mat
 The protocol is platform-agnostic. Example integration:
 
 - [Obsidian + GitHub](adapters/obsidian-github.md)
+- [Local Workspace + Git Evidence](adapters/local-workspace-git.md) — optional live inspection of uncommitted files, Git diff, and test results when the agent has local access.
 
 ## Install
 
