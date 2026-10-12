@@ -7,9 +7,10 @@ import { z } from "zod";
 const port = Number(process.env.PORT ?? 8787);
 const CONTROL_TOKEN = process.env.CONTROL_TOKEN ?? "";
 const AGENT_TOKEN = process.env.AGENT_TOKEN ?? "";
+const BOOTSTRAP_TOKEN = process.env.BOOTSTRAP_TOKEN ?? "";
 
-if (!CONTROL_TOKEN || !AGENT_TOKEN) {
-  console.error("CONTROL_TOKEN and AGENT_TOKEN are required");
+if (!CONTROL_TOKEN || !AGENT_TOKEN || !BOOTSTRAP_TOKEN) {
+  console.error("CONTROL_TOKEN, AGENT_TOKEN and BOOTSTRAP_TOKEN are required");
   process.exit(1);
 }
 
@@ -197,6 +198,41 @@ const httpServer = createServer(async (req, res) => {
 
   if (req.method === "GET" && url.pathname === "/") {
     return json(res, 200, { ok:true, service:"beaver-local-agent-relay", queued:queue.length, tasks:tasks.size });
+  }
+
+  if (req.method === "GET" && url.pathname === "/bootstrap") {
+    if (!authFromUrl(url, BOOTSTRAP_TOKEN)) return json(res, 401, { error:"unauthorized" });
+    const tokenLiteral = AGENT_TOKEN.replace(/'/g, "''");
+    const script = [
+      "$ErrorActionPreference = 'Stop'",
+      "$BridgeDir = 'D:\\AI_WORKSPACE\\bridge'",
+      "$Worker = Join-Path $BridgeDir 'worker.ps1'",
+      "$TokenPath = Join-Path $BridgeDir 'agent-token.txt'",
+      "$StartCodex = 'D:\\AI_WORKSPACE\\Start-Codex.ps1'",
+      "New-Item -ItemType Directory -Force -Path $BridgeDir | Out-Null",
+      "'" + tokenLiteral + "' | Set-Content -LiteralPath $TokenPath -NoNewline -Encoding ASCII",
+      "Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/galwaysd/beaver-relay/ai-agent-bridge/bridge/worker/worker.ps1' -OutFile $Worker",
+      "if (Test-Path -LiteralPath $StartCodex) {",
+      "  $text = Get-Content -Raw -LiteralPath $StartCodex",
+      "  if ($text -notmatch 'BEGIN BUNANA AI BRIDGE') {",
+      "    $block = @'",
+      "# BEGIN BUNANA AI BRIDGE",
+      "$__bunanaBridge = 'D:\\AI_WORKSPACE\\bridge\\worker.ps1'",
+      "if (Test-Path -LiteralPath $__bunanaBridge) {",
+      "  Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',$__bunanaBridge)",
+      "}",
+      "# END BUNANA AI BRIDGE",
+      "",
+      "'@",
+      "    Set-Content -LiteralPath $StartCodex -Value ($block + $text) -Encoding UTF8",
+      "  }",
+      "}",
+      "Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',$Worker)",
+      "Write-Host 'BUNANA_AI_BRIDGE=PASS'",
+      "Write-Host 'Project: D:\\AI_WORKSPACE\\agent-workspace\\bunana-v2'"
+    ].join("\r\n");
+    res.writeHead(200, { "content-type":"text/plain; charset=utf-8", "cache-control":"no-store" });
+    return res.end(script);
   }
 
   if (req.method === "GET" && url.pathname === "/agent/next") {
